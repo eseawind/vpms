@@ -65,11 +65,15 @@ namespace vpms
 
         private void evtNewInfoCallBack(string recd)
         {
+            sw.WriteLine("raw:"+recd+"\r\n");
             wgMjControllerSwipeRecord rec = new wgMjControllerSwipeRecord(recd);
             onEvent(rec.ControllerSN, rec.CardID, rec.ReadDate, rec.ReaderNo);
         }
 
-        private void onEvent(uint ControllerSN, uint CardID, DateTime ReadDate, byte ReaderNo) {
+        private void onEvent(uint ControllerSN, uint CardID, DateTime ReadDate, byte ReaderNo)
+        {
+            sw.WriteLine("EVENT: Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
+                " ControllerSN=" + (int)ControllerSN);
             if (CardID > 1)
             {
                 DateTime dt;
@@ -83,6 +87,8 @@ namespace vpms
                     dt = DateTime.Now.AddDays(-1); //如果没有信息就相当于一天前刷过卡
                 }
 
+                sw.WriteLine("CARDID=1: Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
+                    " ControllerSN=" + (int)ControllerSN);
                 // 如果上次读卡时间 距离本次读卡时间超过5秒 则应该记录本次刷卡
                 if (dt.AddSeconds(10) < ReadDate)
                 {
@@ -92,6 +98,10 @@ namespace vpms
                         req.cardNumber = "" + CardID;
                         req.controllerSn = "" + ControllerSN;
                         req.readerNumber = "" + ReaderNo;
+                        
+                        sw.WriteLine("WS: Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
+                            " ControllerSN=" + (int)ControllerSN );
+
                         RecordResponse res = websvc.Record(req);
 
                         sw.WriteLine("G: COMMD=" + res.command + " Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
@@ -105,7 +115,8 @@ namespace vpms
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show(e.Message);
+                        sw.WriteLine(e);
+                        //MessageBox.Show(e.Message);
                     }
                 }
 
