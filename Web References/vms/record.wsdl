@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:tns="http://www.sdhuijin.cn/record/definition" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:sch="http://www.sdhuijin.cn/record/schema/v1" targetNamespace="http://www.sdhuijin.cn/record/definition" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <xs:schema xmlns:tns="http://www.sdhuijin.cn/record/schema/v1" elementFormDefault="qualified" targetNamespace="http://www.sdhuijin.cn/record/schema/v1" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:element name="RecordRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="controllerSn" type="xs:string" />
+            <xs:element name="readerNumber" type="xs:string" />
+            <xs:element name="cardNumber" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="RecordResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="command" type="xs:string" />
+            <xs:element name="gateNumber" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Controller">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="id" type="xs:string" />
+            <xs:element name="sn" type="xs:string" />
+            <xs:element name="ip" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetControllerListRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="anyString" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetControllerListResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element maxOccurs="unbounded" ref="tns:Controller" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name="GetControllerListRequest">
+    <wsdl:part name="GetControllerListRequest" element="sch:GetControllerListRequest" />
+  </wsdl:message>
+  <wsdl:message name="RecordRequest">
+    <wsdl:part name="RecordRequest" element="sch:RecordRequest" />
+  </wsdl:message>
+  <wsdl:message name="RecordResponse">
+    <wsdl:part name="RecordResponse" element="sch:RecordResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetControllerListResponse">
+    <wsdl:part name="GetControllerListResponse" element="sch:GetControllerListResponse" />
+  </wsdl:message>
+  <wsdl:portType name="RecordServcie">
+    <wsdl:operation name="GetControllerList">
+      <wsdl:input name="GetControllerListRequest" message="tns:GetControllerListRequest" />
+      <wsdl:output name="GetControllerListResponse" message="tns:GetControllerListResponse" />
+    </wsdl:operation>
+    <wsdl:operation name="Record">
+      <wsdl:input name="RecordRequest" message="tns:RecordRequest" />
+      <wsdl:output name="RecordResponse" message="tns:RecordResponse" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="RecordServcieSoap11" type="tns:RecordServcie">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetControllerList">
+      <soap:operation soapAction="" />
+      <wsdl:input name="GetControllerListRequest">
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output name="GetControllerListResponse">
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Record">
+      <soap:operation soapAction="" />
+      <wsdl:input name="RecordRequest">
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output name="RecordResponse">
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="RecordServcieService">
+    <wsdl:port name="RecordServcieSoap11" binding="tns:RecordServcieSoap11">
+      <soap:address location="http://192.168.2.102:8090/advance/ws" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
