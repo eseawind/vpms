@@ -16,7 +16,7 @@ namespace vpms
     {
         private wgWatchingService service = new wgWatchingService();
         private RecordServcieService websvc = new RecordServcieService();
-        private FileStream fs = new FileStream("vms.log", FileMode.Create);
+        private FileStream fs = new FileStream("vms.log", FileMode.OpenOrCreate | FileMode.Append, FileAccess.Write);
         private StreamWriter sw;
         System.Collections.Hashtable map = new System.Collections.Hashtable();//存放控制器读卡器映射
 
@@ -28,6 +28,7 @@ namespace vpms
 
         protected void OnStart()
         {
+            string uuid = Guid.NewGuid().ToString();
             try
             {
                 sw = new StreamWriter(this.fs);
@@ -39,7 +40,7 @@ namespace vpms
                 {
                     foreach (Controller s in list)
                     {
-                        sw.WriteLine(s.sn + " " + s.ip);
+                        log(uuid, "控制器: " + s.sn + " " + s.ip);
                         sw.Flush();
 
                         wgMjController ctrl = new wgMjController();
@@ -51,7 +52,7 @@ namespace vpms
                 }
                 else
                 {
-                    MessageBox.Show("请求控制器列表返回null");
+                    log(uuid, "异常: 请求控制器列表返回null");
                 }
 
                 service.EventHandler += new OnEventHandler(evtNewInfoCallBack);
@@ -59,21 +60,26 @@ namespace vpms
             }
             catch (Exception e)
             {
-                MessageBox.Show(e.Message);
+                log(uuid, "异常: " + e.Message);
             }
         }
 
         private void evtNewInfoCallBack(string recd)
         {
-            sw.WriteLine("raw:"+recd+"\r\n");
+            string uuid = Guid.NewGuid().ToString();
             wgMjControllerSwipeRecord rec = new wgMjControllerSwipeRecord(recd);
-            onEvent(rec.ControllerSN, rec.CardID, rec.ReadDate, rec.ReaderNo);
+            onEvent(rec.ControllerSN, rec.CardID, rec.ReadDate, rec.ReaderNo, uuid);
         }
 
-        private void onEvent(uint ControllerSN, uint CardID, DateTime ReadDate, byte ReaderNo)
+        private void log(string uuid, string log)
         {
-            sw.WriteLine("EVENT: Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
-                " ControllerSN=" + (int)ControllerSN);
+            sw.WriteLine(uuid + " 系统时间=" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + log);
+        }
+
+        private void onEvent(uint ControllerSN, uint CardID, DateTime ReadDate, byte ReaderNo, string uuid)
+        {
+            log(uuid, "事件: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
+                " 控制器=" + (int)ControllerSN);
             if (CardID > 1)
             {
                 DateTime dt;
@@ -87,36 +93,37 @@ namespace vpms
                     dt = DateTime.Now.AddDays(-1); //如果没有信息就相当于一天前刷过卡
                 }
 
-                sw.WriteLine("CARDID=1: Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
-                    " ControllerSN=" + (int)ControllerSN);
+                log(uuid, "读卡: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
+                    " 控制器=" + (int)ControllerSN);
                 // 如果上次读卡时间 距离本次读卡时间超过5秒 则应该记录本次刷卡
-                if (dt.AddSeconds(10) < ReadDate)
+                if (dt.AddSeconds(30) < ReadDate)
                 {
                     try
                     {
                         RecordRequest req = new RecordRequest();
                         req.cardNumber = "" + CardID;
                         req.controllerSn = "" + ControllerSN;
-                        req.readerNumber = "" + ReaderNo;
-                        
-                        sw.WriteLine("WS: Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
-                            " ControllerSN=" + (int)ControllerSN );
+                        req.readerNumber = "" + ReaderNo + "M" + uuid + "M" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss");
+
+                        log(uuid, "调用: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
+                            " 控制器=" + (int)ControllerSN);
 
                         RecordResponse res = websvc.Record(req);
 
-                        sw.WriteLine("G: COMMD=" + res.command + " Reader=" + ReaderNo + " Date=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " CardId=" + CardID +
-                            " ControllerSN=" + (int)ControllerSN + " Gan=" + res.gateNumber);
+                        log(uuid, "返回: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
+                            " 控制器=" + (int)ControllerSN + " 返回命令=" + res.command + " 杆号=" + res.gateNumber);
 
                         if (res.command.ToLower().Equals("open"))
                         {
                             sw.Flush();
                             service.WatchingController[(int)ControllerSN].RemoteOpenDoorIP(Int32.Parse(res.gateNumber));//抬杆
+                            log(uuid, "抬杆: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
+                                " 控制器=" + (int)ControllerSN + " 返回命令=" + res.command + " 杆号=" + res.gateNumber);
                         }
                     }
                     catch (Exception e)
                     {
-                        sw.WriteLine(e);
-                        //MessageBox.Show(e.Message);
+                        log(uuid, "异常: " + e.ToString());
                     }
                 }
 
@@ -137,7 +144,7 @@ namespace vpms
             try
             {
                 onEvent(UInt32.Parse(txtController.Text), UInt32.Parse(txtCardId.Text),
-                    DateTime.Now, Byte.Parse(txtReader.Text));
+                    DateTime.Now, Byte.Parse(txtReader.Text), "");
             }
             catch (Exception ee)
             {
