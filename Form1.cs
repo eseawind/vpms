@@ -76,27 +76,33 @@ namespace vpms
             sw.WriteLine(uuid + " 系统时间=" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " " + log);
         }
 
+        private Boolean callenable(uint CardID, DateTime ReadDate)
+        {
+            Boolean call = true;
+            lock (this)
+            if (map.ContainsKey("" + CardID))
+            {
+                DateTime dt = (DateTime)map["" + CardID];
+                if (dt.AddSeconds(60) > ReadDate)
+                {
+                    call = false;
+                }
+            }
+            map["" + CardID] = ReadDate;
+            return call;
+        }
+
         private void onEvent(uint ControllerSN, uint CardID, DateTime ReadDate, byte ReaderNo, string uuid)
         {
-            log(uuid, "事件: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
-                " 控制器=" + (int)ControllerSN);
+                log(uuid, "事件: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
+                    " 控制器=" + (int)ControllerSN);
             if (CardID > 1)
             {
-                DateTime dt;
-
-                if (map.ContainsKey("" + CardID))
-                {
-                    dt = (DateTime)map["" + CardID];
-                }
-                else
-                {
-                    dt = DateTime.Now.AddDays(-1); //如果没有信息就相当于一天前刷过卡
-                }
-
                 log(uuid, "读卡: 读卡时间=" + ReadDate.ToString("yyyy-MM-dd HH:mm:ss") + " 读卡器=" + ReaderNo + " 卡号=" + CardID +
                     " 控制器=" + (int)ControllerSN);
+
                 // 如果上次读卡时间 距离本次读卡时间超过5秒 则应该记录本次刷卡
-                if (dt.AddSeconds(30) < ReadDate)
+                if (callenable(CardID, ReadDate))
                 {
                     try
                     {
@@ -126,8 +132,6 @@ namespace vpms
                         log(uuid, "异常: " + e.ToString());
                     }
                 }
-
-                map["" + CardID] = ReadDate;
             }
             sw.WriteLine("");
             sw.Flush();
